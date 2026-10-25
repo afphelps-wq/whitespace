@@ -1,0 +1,3 @@
+chromadb==1.5.9
+requests==2.34.2
+# Optional, not pip: Ollama (brew install ollama) with `ollama pull llama3.2:3b` for rewrite + advice
