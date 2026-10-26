@@ -56,10 +56,14 @@ def _chat(system, user, json_mode=False):
 
 
 def rewrite_to_pitch(user_text):
+    """The one-line pitch, or None if Ollama is unavailable or the reply has no usable line.
+    A preamble line like "Here is a product description:" is skipped."""
     out = _chat(REWRITE_SYSTEM, user_text)
     if not out:
         return None
-    return out.splitlines()[0].strip().strip('"').strip()
+    lines = [ln.strip().strip('"').strip() for ln in out.splitlines()]
+    lines = [ln for ln in lines if ln and not ln.endswith(":")]
+    return lines[0] if lines else None
 
 
 def advise(user_text, top5):
@@ -78,4 +82,13 @@ def advise(user_text, top5):
         return None
     if isinstance(angles, str):
         angles = [angles]
-    return {"summary": str(summary).strip(), "angles": [str(a).strip() for a in angles][:3]}
+    if not isinstance(angles, list):
+        angles = []
+    # a model sometimes returns {"company": ..., "angle": ...} objects instead of sentences
+    angles = [": ".join(str(v).strip() for v in a.values()) if isinstance(a, dict) else str(a).strip()
+              for a in angles]
+    angles = [a for a in angles if a]
+    if not isinstance(summary, str) or not summary.strip() or not angles:
+        print("[LLM unavailable: reply had no summary or angles; continuing without it]")
+        return None
+    return {"summary": summary.strip(), "angles": angles[:3]}

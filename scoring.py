@@ -9,11 +9,16 @@ STATUS_GROUP = {"Active": "Active", "Acquired": "Acquired/Public", "Public": "Ac
 GROUPS = ["Active", "Acquired/Public", "Inactive"]
 
 VERDICT_TEXT = {
-    "Taken": f"A YC company is already doing almost exactly this (best match <= {TAKEN_MAX}).",
-    "Crowded": f"At least {CROWDED_MIN_COUNT} YC companies are close to this idea (<= {RELEVANT_MAX}).",
+    "Taken": f"A YC company is already doing almost exactly this (best match <= {TAKEN_MAX:.2f}).",
+    "Crowded": f"At least {CROWDED_MIN_COUNT} YC companies are close to this idea (<= {RELEVANT_MAX:.2f}).",
     "Some neighbors": "A few YC companies are nearby, but none is a direct match.",
-    "Open": f"No YC company is close (best match > {RELEVANT_MAX}).",
+    "Open": f"No YC company is close (best match > {RELEVANT_MAX:.2f}).",
 }
+
+
+def shown(d):
+    """Distance as the report prints it; cutoffs compare against this, so a match shown as 0.530 counts."""
+    return round(d, 3)
 
 
 def analyze(results):
@@ -21,9 +26,9 @@ def analyze(results):
     matches = [{**m, "id": i, "distance": d}
                for i, m, d in zip(results["ids"][0], results["metadatas"][0], results["distances"][0])]
     best = matches[0]["distance"] if matches else 1.0
-    relevant = [m for m in matches if m["distance"] <= RELEVANT_MAX]
+    relevant = [m for m in matches if shown(m["distance"]) <= RELEVANT_MAX]
 
-    if best <= TAKEN_MAX:
+    if shown(best) <= TAKEN_MAX:
         verdict = "Taken"
     elif len(relevant) >= CROWDED_MIN_COUNT:
         verdict = "Crowded"
@@ -62,7 +67,7 @@ def format_report(a):
         f"Verdict: {a['verdict'].upper()}",
         f"  {VERDICT_TEXT[a['verdict']]}",
         f"  Best match distance {a['best_distance']:.3f}; "
-        f"{a['relevant_count']} relevant match(es) within {RELEVANT_MAX}.",
+        f"{a['relevant_count']} relevant match(es) within {RELEVANT_MAX:.2f}.",
     ]
     if a["relevant_count"]:
         s = a["status"]

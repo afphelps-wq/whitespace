@@ -50,7 +50,10 @@ def ask_year():
         if not raw:
             return None
         if raw.isdigit() and len(raw) == 4:
-            return int(raw)
+            try:
+                return int(raw)
+            except ValueError:  # isdigit() also accepts superscripts like "²⁰²⁴", which int() rejects
+                pass
         print("  Enter a 4-digit year like 2020, or leave blank.")
 
 
@@ -111,7 +114,7 @@ def check_idea(state):
     if state["rewrite"]:
         print("\nRewriting as a pitch...")
         rewrite = llm.rewrite_to_pitch(text)
-        if rewrite is None:
+        if not rewrite:
             print("Rewrite failed, so this check uses your raw text with no verdict.")
 
     if rewrite:
@@ -133,8 +136,9 @@ def check_idea(state):
     else:
         print(f"Closest {REPORT_TOP} YC companies to your text:")
         print_top(results)
+        fix = "Try again" if state["rewrite"] else "Turn rewrite on (option 4)"
         print("\nNo verdict: verdict thresholds are calibrated for pitch-style text "
-              "(\"An app that...\"). Turn rewrite on (option 4) or phrase it as a pitch for one.")
+              f"(\"An app that...\"). {fix} or phrase it as a pitch for one.")
         verdict, top_match = "", results["metadatas"][0][0]["name"]
     save_with_duplicate_check(text, verdict, top_match)
 
@@ -207,7 +211,7 @@ def main():
         print(MENU.format(rewrite="ON" if state["rewrite"] else "OFF"))
         try:
             choice = ask("Choose 1-6: ")
-        except EOFError:
+        except (EOFError, KeyboardInterrupt):
             print()
             break
         if choice == "6":
@@ -215,7 +219,7 @@ def main():
         if choice in actions:
             try:
                 actions[choice]()
-            except EOFError:
+            except (EOFError, KeyboardInterrupt):
                 print()
                 break
         else:
